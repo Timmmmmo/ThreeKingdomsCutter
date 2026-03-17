@@ -1,0 +1,14 @@
+{
+  "__type__": "cc.SceneAsset",
+  "_name": "Battle",
+  "_objFlags": 0,
+  "_native": "",
+  "scene": {
+    "__id__": 1
+  },
+  "asyncLoadAssets": false,
+  "autoReleaseAssets": false,
+  "_globals": {
+    "__id__": 2
+  }
+}
