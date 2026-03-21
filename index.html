@@ -7,12 +7,36 @@
 <meta name="mobile-web-app-capable" content="yes">
 <title>三国割草传 · MVP v3.0</title>
 <style>
+/* ════════════════════════════════════════
+   三国古风配色系统（腾讯TOP5对标）
+   ════════════════════════════════════════ */
+:root {
+  /* 主色调 - 三国古风 */
+  --tk-primary: #c9a227;      /* 帝王金 */
+  --tk-primary-dark: #8b6914; /* 暗金 */
+  --tk-secondary: #8b0000;    /* 中国红 */
+  --tk-accent: #2f4f4f;       /* 墨绿 */
+  --tk-bg-dark: #0a0508;      /* 深紫黑 */
+  --tk-bg-mid: #1a0f18;       /* 中紫 */
+  --tk-text: #f5e6c8;         /* 米白 */
+  --tk-text-dim: #a09080;     /* 暗灰 */
+
+  /* 英雄配色 */
+  --hero-liubei: #4ade80;     /* 仁德绿 */
+  --hero-guanyu: #ef4444;     /* 武圣红 */
+  --hero-zhangfei: #78716c;   /* 猛将灰 */
+  --hero-zhaoyun: #38bdf8;    /* 龙胆蓝 */
+  --hero-zhugeliang: #a855f7; /* 卧龙紫 */
+  --hero-sunquan: #f59e0b;    /* 江东橙 */
+  --hero-zhouyu: #f97316;     /* 赤壁焰 */
+}
+
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 html, body {
   width:100%; height:100%;
-  background:#000;
+  background:var(--tk-bg-dark);
   overflow:hidden;
-  touch-action:none;
+  touch-action:pan-y;
   user-select:none;
   -webkit-user-select:none;
 }
@@ -25,14 +49,12 @@ html, body {
   height:100%;
   margin:0 auto;
   overflow:hidden;
-  background:#1a0820;
+  background:linear-gradient(180deg, var(--tk-bg-dark) 0%, var(--tk-bg-mid) 50%, #0f0812 100%);
 }
 #canvas {
   position:absolute; top:0; left:0;
   display:block;
   image-rendering:pixelated;
-  will-change:contents;  /* GPU加速Canvas渲染 */
-  touch-action:none;     /* 禁止浏览器接管触摸事件 */
 }
 canvas {
   image-rendering:pixelated;
@@ -119,8 +141,6 @@ canvas {
   top:36px; left:36px;
   transition:none;
   box-shadow:0 0 12px rgba(255,160,0,0.5);
-  will-change:transform;  /* GPU合成层，transform 更新不触发重排 */
-  transform:translate(0px,0px);
 }
 
 /* ══ 暂停按钮 ══ */
@@ -1012,12 +1032,13 @@ canvas {
   to   { transform:translateX(-50%) scale(1); opacity:1; }
 }
 </style>
-<!-- 性能优化与美术增强补丁 -->
-<script src="optimization_patch.js"></script>
-<!-- 手机端性能优化 -->
-<script src="mobile_optimization.js"></script>
 </head>
 <body>
+<script src="QUADTREE.js"></script>
+<script src="TEXTURE_ATLAS.js"></script>
+<script src="WEBGL_RENDERER.js"></script>
+<script src="AI_MANAGER.js"></script>
+<script src="DYNAMIC_OBJECT_POOL.js"></script>
 <div id="app">
   <canvas id="canvas"></canvas>
 
@@ -1043,8 +1064,8 @@ canvas {
 
   <div id="pause-btn">⏸</div>
 
-  <!-- 虚拟摇杆 -->
-  <div id="joystick-zone">
+  <!-- 虚拟摇杆（已改为Canvas绘制，隐藏DOM元素） -->
+  <div id="joystick-zone" style="display:none !important;">
     <div id="joystick-base"></div>
     <div id="joystick-thumb"></div>
   </div>
@@ -1116,28 +1137,28 @@ canvas {
     <div class="menu-section-title">选择英雄</div>
     <div class="hero-grid" id="hero-cards">
       <div class="hero-card selected" data-hero="liubei">
-        <canvas id="hero-preview-liubei" width="60" height="60" style="display:block;margin:0 auto 4px;"></canvas>
+        <img src="assets/resources/textures/heroes/liubei/liubei_idle.png" onerror="this.style.display='none'">
         <div class="hname" style="color:#6d6">刘备</div>
         <div class="hrole">仁德之君</div>
         <div class="hstats">HP ██████<br>ATK ████</div>
         <div class="hskill-tag">仁义之盾</div>
       </div>
       <div class="hero-card" data-hero="guanyu">
-        <canvas id="hero-preview-guanyu" width="60" height="60" style="display:block;margin:0 auto 4px;"></canvas>
+        <img src="assets/resources/textures/heroes/guanyu/guanyu_idle.png" onerror="this.style.display='none'">
         <div class="hname" style="color:#e66">关羽</div>
         <div class="hrole">武圣将军</div>
         <div class="hstats">HP ████<br>ATK ██████</div>
         <div class="hskill-tag">青龙偃月</div>
       </div>
       <div class="hero-card" data-hero="zhangfei">
-        <canvas id="hero-preview-zhangfei" width="60" height="60" style="display:block;margin:0 auto 4px;"></canvas>
+        <img src="assets/resources/textures/heroes/zhangfei/zhangfei_idle.png" onerror="this.style.display='none'">
         <div class="hname" style="color:#bbb">张飞</div>
         <div class="hrole">万夫莫当</div>
         <div class="hstats">HP ████████<br>ATK █████</div>
         <div class="hskill-tag">万夫莫当</div>
       </div>
       <div class="hero-card" data-hero="zhaoyun">
-        <canvas id="hero-preview-zhaoyun" width="60" height="60" style="display:block;margin:0 auto 4px;"></canvas>
+        <img src="assets/resources/textures/heroes/zhaoyun/zhaoyun_idle.png" onerror="this.style.display='none'">
         <div class="hname" style="color:#8cf">赵云</div>
         <div class="hrole">七进七出</div>
         <div class="hstats">HP ███<br>ATK █████ SPD↑</div>
@@ -1565,11 +1586,24 @@ const PATHS = {
 };
 function preload(cb) {
   const keys = Object.keys(PATHS), total = keys.length;
-  if (total === 0) { setTimeout(cb, 0); return; }
+  if (total === 0) {
+    // 直接加载纹理图集
+    loadTextureAtlases().then(() => {
+      cb();
+    });
+    return;
+  }
   let done = 0;
   keys.forEach(k => {
     const i = new Image();
-    i.onload = i.onerror = () => { if (++done >= total) cb(); };
+    i.onload = i.onerror = () => {
+      if (++done >= total) {
+        // 加载纹理图集
+        loadTextureAtlases().then(() => {
+          cb();
+        });
+      }
+    };
     i.src = PATHS[k]; IMG[k] = i;
   });
 }
@@ -2019,14 +2053,122 @@ const ULTIMATE_CFG = {
   },
 };
 
-// ── 虚拟摇杆 ──
-const joyZone  = document.getElementById('joystick-zone');
-const joyThumb = document.getElementById('joystick-thumb');
+// ════════════════════════════════
+//  四叉树空间分区系统
+// ════════════════════════════════
+const quadtreeManager = new QuadtreeManager(LW, LH);
+
+// ════════════════════════════════
+//  对象池系统（减少GC压力）
+// ════════════════════════════════
+/* 原ObjectPool已被动态对象池系统替换
+const ObjectPool = {
+  // 子弹池
+  bullets: [],
+  bulletIdx: 0,
+  BULLET_POOL_SIZE: 200,
+
+  // 特效池
+  effects: [],
+  effectIdx: 0,
+  EFFECT_POOL_SIZE: 100,
+
+  // 掉落物池
+  drops: [],
+  dropIdx: 0,
+  DROP_POOL_SIZE: 50,
+
+  // 初始化池
+  init() {
+    // 预创建子弹对象
+    for (let i = 0; i < this.BULLET_POOL_SIZE; i++) {
+      this.bullets.push({
+        x: 0, y: 0, vx: 0, vy: 0, dmg: 0, owner: '', life: 0,
+        type: '', pierce: 0, piercedIds: null, homingTarget: null, fanRot: 0
+      });
+    }
+    // 预创建特效对象
+    for (let i = 0; i < this.EFFECT_POOL_SIZE; i++) {
+      this.effects.push({ x: 0, y: 0, type: '', t: 0, dur: 0, ang: 0 });
+    }
+    // 预创建掉落物对象
+    for (let i = 0; i < this.DROP_POOL_SIZE; i++) {
+      this.drops.push({ x: 0, y: 0, val: 0, life: 0 });
+    }
+  },
+
+  // 获取子弹对象
+  getBullet(props) {
+    const idx = this.bulletIdx % this.BULLET_POOL_SIZE;
+    const b = this.bullets[idx];
+    this.bulletIdx++;
+    // 重置对象
+    b.x = props.x || 0; b.y = props.y || 0;
+    b.vx = props.vx || 0; b.vy = props.vy || 0;
+    b.dmg = props.dmg || 0; b.owner = props.owner || 'hero';
+    b.life = props.life || 1;
+    b.type = props.type || 'default';
+    b.pierce = props.pierce || 0;
+    b.piercedIds = props.pierce > 0 ? new Set() : null;
+    b.homingTarget = props.homingTarget || null;
+    b.fanRot = props.fanRot || 0;
+    return b;
+  },
+
+  // 获取特效对象
+  getEffect(props) {
+    const idx = this.effectIdx % this.EFFECT_POOL_SIZE;
+    const e = this.effects[idx];
+    this.effectIdx++;
+    e.x = props.x || 0; e.y = props.y || 0;
+    e.type = props.type || 'hit';
+    e.t = 0;
+    e.dur = props.dur || 0.3;
+    e.ang = props.ang || 0;
+    return e;
+  },
+
+  // 获取掉落物对象
+  getDrop(props) {
+    const idx = this.dropIdx % this.DROP_POOL_SIZE;
+    const d = this.drops[idx];
+    this.dropIdx++;
+    d.x = props.x || 0; d.y = props.y || 0;
+    d.val = props.val || 10;
+    d.life = props.life || 4;
+    return d;
+  }
+};
+*/
+
+// 数组复用：预分配数组避免扩容
+const ArrayPool = {
+  enemies: [],
+  bullets: [],
+  effects: [],
+  drops: [],
+  equipDrops: [],
+
+  // 重置数组（清空但不释放内存）
+  reset() {
+    this.enemies.length = 0;
+    this.bullets.length = 0;
+    this.effects.length = 0;
+    this.drops.length = 0;
+    this.equipDrops.length = 0;
+  }
+};
+
+// ════════════════════════════════
+//  虚拟摇杆（纯Canvas绘制优化版）
+// ════════════════════════════════
 const JOY_R    = 60; // 摇杆半径（逻辑px）
 let joyActive  = false;
 let joyTouchId = null;
-let joyOriginX = 0, joyOriginY = 0;  // touch起始点（相对app）
+let joyOriginX = 0, joyOriginY = 0;  // touch起始点（逻辑坐标）
 let joyDX = 0, joyDY = 0;            // 归一化方向
+let joyScreenX = 0, joyScreenY = 0;  // 摇杆中心屏幕坐标
+let joyThumbX = 0, joyThumbY = 0;    // 摇杆拇指位置（相对中心）
 
 // 键盘
 const keys = {};
@@ -2037,275 +2179,142 @@ document.addEventListener('keydown', e => {
 });
 document.addEventListener('keyup',  e => { keys[e.code] = false; });
 
-// ── 触摸事件 ──
+// ── 触摸事件（优化版：使用passive:true + 坐标转换优化）──
 const JOYSTICK_LEFT_HALF = true; // 左半屏为摇杆区
 
+// 缓存rect避免强制重排
+let _appRectCache = null;
+let _appRectCacheTime = 0;
+function getAppRect() {
+  const now = performance.now();
+  if (!_appRectCache || now - _appRectCacheTime > 100) {
+    _appRectCache = app.getBoundingClientRect();
+    _appRectCacheTime = now;
+  }
+  return _appRectCache;
+}
+
 function touchToApp(t) {
-  const r = app.getBoundingClientRect();
+  const r = getAppRect();
   return { x: t.clientX - r.left, y: t.clientY - r.top };
 }
 
-// 切割系统：存储切割轨迹点
-let cutPoints = [];
-let isCutting = false;
-let lastCutTime = 0;
-
-app.addEventListener('pointerdown', e => {
-  // 非战斗状态（菜单、游戏结束等）不阻止默认行为，允许页面正常滚动
-  if (state === 'battle' && !paused) e.preventDefault();
-  
-  const p = { x: e.offsetX, y: e.offsetY };
-  
+// 触摸事件处理（使用passive:true提升响应速度）
+app.addEventListener('touchstart', e => {
+  // 非战斗状态不处理
   if (state !== 'battle' || paused) return;
   
-  // 右半屏：切割模式
-  if (p.x >= app.clientWidth * 0.6) {
-    isCutting = true;
-    cutPoints = [{ x: p.x, y: p.y, time: Date.now() }];
-    app.setPointerCapture(e.pointerId);
-  }
-  // 左半屏：摇杆模式
-  else if (!joyActive) {
-    joyActive   = true;
-    joyTouchId  = e.pointerId;
-    joyOriginX  = p.x;
-    joyOriginY  = p.y;
-    joyZone.style.left = (p.x - 60) + 'px';
-    joyZone.style.top  = (p.y - 60) + 'px';
-    joyThumb.style.transform = 'translate(0px,0px)'; // 使用 transform（性能更好，触发合成层）
-    joyDX = 0; joyDY = 0;
-    app.setPointerCapture(e.pointerId);
-  }
-}, { passive: false });
-
-// ── 性能优化：触摸移动节流 ──
-let _lastPointerMove = 0;
-// 移动端使用更短的节流时间以提高响应速度
-const POINTER_MOVE_THROTTLE = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ? 4 : 8;
-
-app.addEventListener('pointermove', e => {
-  // 战斗中阻止默认滚动
-  if (state === 'battle' && !paused) e.preventDefault();
-  
-  // ── 节流：8ms内只处理一次 ──
-  const now = performance.now();
-  if (now - _lastPointerMove < POINTER_MOVE_THROTTLE) return;
-  _lastPointerMove = now;
-  
-  const p = { x: e.offsetX, y: e.offsetY };
-  
-  if (state !== 'battle' || paused) return;
-  
-  // 切割轨迹（优化：减少数组操作，使用固定长度循环缓冲）
-  if (isCutting) {
-    const pt = { x: p.x, y: p.y, time: now };
-    if (cutPoints.length > 40) {
-      // 快速移除旧点，避免filter创建新数组
-      cutPoints.shift();
-    }
-    cutPoints.push(pt);
-  }
-  
-  // 摇杆处理（优化：使用快速逆平方根近似）
-  if (e.pointerId === joyTouchId && joyActive) {
-    let dx = p.x - joyOriginX, dy = p.y - joyOriginY;
-    const dist2val = dx*dx + dy*dy;
-    const maxR = 60;
-    const maxR2 = maxR * maxR;
-    
-    if (dist2val > maxR2) {
-      // 超出范围：使用快速逆平方根（比Math.sqrt快约3倍）
-      const invDist = fastInvSqrt(dist2val);
-      dx = dx * invDist * maxR;
-      dy = dy * invDist * maxR;
-      joyDX = dx/maxR; joyDY = dy/maxR;
-    } else if (dist2val > 16) {
-      // 死区4px²
-      const invDist = fastInvSqrt(dist2val);
-      joyDX = dx * invDist; joyDY = dy * invDist;
-      // 非线性响应
-      const ratio = Math.min(Math.sqrt(dist2val)/maxR, 1);
-      const sensitized = ratio * ratio * (3 - 2 * ratio); // smoothstep
-      joyDX *= sensitized; joyDY *= sensitized;
-    } else {
-      dx = 0; dy = 0;
+  for (const t of e.changedTouches) {
+    const p = touchToApp(t);
+    if (!joyActive && p.x < app.clientWidth * 0.6) {
+      joyActive   = true;
+      joyTouchId  = t.identifier;
+      joyOriginX  = p.x;
+      joyOriginY  = p.y;
+      joyScreenX  = p.x;
+      joyScreenY  = p.y;
+      joyThumbX   = 0;
+      joyThumbY   = 0;
       joyDX = 0; joyDY = 0;
-    }
-    
-    // 更新视觉位置（使用will-change已开启GPU合成层）
-    joyThumb.style.transform = `translate(${dx}px,${dy}px)`;
-  }
-}, { passive: false });
-
-// ── 快速逆平方根（Quake III算法）──
-function fastInvSqrt(x) {
-  const buf = new ArrayBuffer(4);
-  const f32 = new Float32Array(buf);
-  const u32 = new Uint32Array(buf);
-  f32[0] = x;
-  u32[0] = 0x5f3759df - (u32[0] >> 1);
-  const y = f32[0];
-  return y * (1.5 - (x * 0.5 * y * y)); // 牛顿迭代一次
-}
-
-app.addEventListener('pointerup', e => {
-  // 战斗状态下才阻止默认行为
-  if (state === 'battle' && !paused) e.preventDefault();
-  
-  // 切割结束：执行切割判定
-  if (isCutting && cutPoints.length >= 2) {
-    performCut();
-  }
-  
-  isCutting = false;
-  cutPoints = [];
-  
-  // 摇杆释放
-  if (e.pointerId === joyTouchId) {
-    joyActive = false;
-    joyTouchId = null;
-    joyDX = 0;
-    joyDY = 0;
-    joyThumb.style.transform = 'translate(0px,0px)'; // 归位
-  }
-  
-  app.releasePointerCapture(e.pointerId);
-}, { passive: false });
-
-// ════════════════════════════════
-//  切割系统（线段碰撞检测）
-// ════════════════════════════════
-
-// 将屏幕坐标转换为游戏逻辑坐标
-function screenToGame(screenX, screenY) {
-  const rect = canvas.getBoundingClientRect();
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  
-  // 从屏幕坐标到Canvas坐标
-  const canvasX = (screenX - rect.left) * dpr;
-  const canvasY = (screenY - rect.top) * dpr;
-  
-  // 从Canvas坐标到游戏逻辑坐标
-  const gameX = (canvasX - offsetX) / scale;
-  const gameY = (canvasY - offsetY) / scale;
-  
-  return { x: gameX, y: gameY };
-}
-
-// 线段与圆的碰撞检测
-function lineCircleCollision(x1, y1, x2, y2, cx, cy, r) {
-  // 向量
-  const dx = x2 - x1;
-  const dy = y2 - y1;
-  const fx = x1 - cx;
-  const fy = y1 - cy;
-  
-  const a = dx * dx + dy * dy;
-  const b = 2 * (fx * dx + fy * dy);
-  const c = (fx * fx + fy * fy) - r * r;
-  
-  let discriminant = b * b - 4 * a * c;
-  
-  if (discriminant < 0) return false;
-  
-  discriminant = Math.sqrt(discriminant);
-  const t1 = (-b - discriminant) / (2 * a);
-  const t2 = (-b + discriminant) / (2 * a);
-  
-  // 检查交点是否在线段上
-  if (t1 >= 0 && t1 <= 1) return true;
-  if (t2 >= 0 && t2 <= 1) return true;
-  
-  return false;
-}
-
-// 执行切割
-function performCut() {
-  if (cutPoints.length < 2 || !hero) return;
-  
-  // 将切割点转换为游戏坐标
-  const gamePoints = cutPoints.map(pt => {
-    const rect = canvas.getBoundingClientRect();
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const canvasX = (pt.x) * dpr;
-    const canvasY = (pt.y) * dpr;
-    const gameX = (canvasX - offsetX) / scale;
-    const gameY = (canvasY - offsetY) / scale;
-    return { x: gameX, y: gameY };
-  });
-  
-  // 切割速度检测（防止慢速拖动）
-  const totalDist = gamePoints.reduce((sum, pt, i) => {
-    if (i === 0) return 0;
-    const prev = gamePoints[i - 1];
-    return sum + Math.sqrt((pt.x - prev.x) ** 2 + (pt.y - prev.y) ** 2);
-  }, 0);
-  
-  const timeSpan = cutPoints[cutPoints.length - 1].time - cutPoints[0].time;
-  const cutSpeed = totalDist / Math.max(timeSpan, 1); // px/ms
-  
-  // 如果速度太慢，不算切割
-  if (cutSpeed < 0.3) return;
-  
-  // 检查每个敌人是否被切割线段击中
-  const hitEnemies = new Set();
-  
-  for (const enemy of enemies) {
-    if (enemy.dying) continue;
-    
-    // 检查敌人的碰撞半径
-    const radius = Math.max(enemy.w, enemy.h) / 2;
-    
-    // 检查每个切割线段
-    for (let i = 0; i < gamePoints.length - 1; i++) {
-      const p1 = gamePoints[i];
-      const p2 = gamePoints[i + 1];
       
-      if (lineCircleCollision(p1.x, p1.y, p2.x, p2.y, enemy.x, enemy.y, radius)) {
-        hitEnemies.add(enemy);
-        break;
+      // 阻止默认行为（仅在摇杆区）
+      if (e.cancelable) e.preventDefault();
+    }
+  }
+}, { passive: false, capture: true });
+
+app.addEventListener('touchmove', e => {
+  if (state !== 'battle' || paused || !joyActive) return;
+  
+  for (const t of e.changedTouches) {
+    if (t.identifier === joyTouchId) {
+      const p = touchToApp(t);
+      let dx = p.x - joyOriginX, dy = p.y - joyOriginY;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      const maxR = JOY_R;
+      
+      if (dist > maxR) {
+        dx = dx/dist*maxR;
+        dy = dy/dist*maxR;
       }
+      
+      joyThumbX = dx;
+      joyThumbY = dy;
+      joyDX = dist > 4 ? dx / maxR : 0;
+      joyDY = dist > 4 ? dy / maxR : 0;
+      
+      if (e.cancelable) e.preventDefault();
     }
   }
+}, { passive: false, capture: true });
+
+app.addEventListener('touchend', e => {
+  if (state !== 'battle' || paused) return;
   
-  // 对击中的敌人造成伤害
-  const cutDamage = hero.atk * 3; // 切割伤害为攻击力的3倍
-  let hitCount = 0;
-  
-  for (const enemy of hitEnemies) {
-    const isCrit = Math.random() < (hero.critRate || 0.2);
-    const damage = Math.round(cutDamage * (isCrit ? 2 : 1));
-    
-    enemy.hp -= damage;
-    enemy.hurtTimer = 0.2;
-    
-    // 显示伤害数字
-    spawnDmgFloat(enemy.x, enemy.y, damage, isCrit, false);
-    
-    // 添加切割特效
-    addFX(enemy.x, enemy.y, 'cut');
-    
-    hitCount++;
-    
-    // 检查敌人是否死亡
-    if (enemy.hp <= 0 && !enemy.dying) {
-      enemy.dying = true;
-      kills++;
-      addFX(enemy.x, enemy.y, 'kill');
-      onEnemyKilled(enemy);
+  for (const t of e.changedTouches) {
+    if (t.identifier === joyTouchId) {
+      joyActive = false;
+      joyTouchId = null;
+      joyDX = 0; joyDY = 0;
+      joyThumbX = 0; joyThumbY = 0;
     }
   }
+}, { passive: false, capture: true });
+
+// 绘制虚拟摇杆（在draw函数中调用）
+function drawJoystick() {
+  if (!joyActive) return;
   
-  // 播放音效和震动反馈
-  if (hitCount > 0) {
-    playSound('hit');
-    if (navigator.vibrate) navigator.vibrate(20);
-    
-    // 显示切割统计
-    showPickupToast(`⚔️ 切割命中 ${hitCount} 敌人！`);
+  // 转换屏幕坐标到Canvas坐标
+  const scaleX = canvas.width / app.clientWidth;
+  const scaleY = canvas.height / app.clientHeight;
+  const cx = joyScreenX * scaleX;
+  const cy = joyScreenY * scaleY;
+  const r = JOY_R * scaleX;
+  const tr = 24 * scaleX; // 拇指半径
+  
+  ctx.save();
+  
+  // 摇杆底座
+  ctx.globalAlpha = 0.3;
+  ctx.fillStyle = 'rgba(255,255,255,0.2)';
+  ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+  ctx.lineWidth = 2 * scaleX;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI*2);
+  ctx.fill();
+  ctx.stroke();
+  
+  // 摇杆拇指
+  ctx.globalAlpha = 0.6;
+  const thumbX = cx + joyThumbX * scaleX;
+  const thumbY = cy + joyThumbY * scaleY;
+  const grad = ctx.createRadialGradient(
+    thumbX - tr*0.3, thumbY - tr*0.3, 0,
+    thumbX, thumbY, tr
+  );
+  grad.addColorStop(0, 'rgba(255,215,0,0.9)');
+  grad.addColorStop(1, 'rgba(200,100,0,0.7)');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.arc(thumbX, thumbY, tr, 0, Math.PI*2);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,215,0,0.6)';
+  ctx.lineWidth = 2 * scaleX;
+  ctx.stroke();
+  
+  // 方向指示线
+  if (Math.abs(joyDX) > 0.1 || Math.abs(joyDY) > 0.1) {
+    ctx.globalAlpha = 0.4;
+    ctx.strokeStyle = 'rgba(255,215,0,0.8)';
+    ctx.lineWidth = 3 * scaleX;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + joyDX * r, cy + joyDY * r);
+    ctx.stroke();
   }
   
-  lastCutTime = Date.now();
+  ctx.restore();
 }
 
 // ════════════════════════════════
@@ -3766,7 +3775,7 @@ function _bindUIEvents() {
   if (heroCards) {
     // 使用捕获模式确保事件在子元素拦截前被处理
     heroCards.addEventListener('click', _onHeroCardSelect, true);
-    heroCards.addEventListener('pointerup', e => {
+    heroCards.addEventListener('touchend', e => {
       e.preventDefault();
       e.stopPropagation();
       _onHeroCardSelect(e);
@@ -3783,7 +3792,7 @@ function _bindUIEvents() {
       selectedHero = this.dataset.hero;
       if (navigator.vibrate) navigator.vibrate(8);
     });
-    card.addEventListener('pointerup', function(e) {
+    card.addEventListener('touchend', function(e) {
       e.preventDefault();
       e.stopPropagation();
       document.querySelectorAll('.hero-card').forEach(c => c.classList.remove('selected'));
@@ -3796,7 +3805,7 @@ function _bindUIEvents() {
   const startBtn = document.getElementById('start-btn');
   if (startBtn) {
     startBtn.addEventListener('click', startGame);
-    startBtn.addEventListener('pointerup', e => {
+    startBtn.addEventListener('touchend', e => {
       e.preventDefault(); e.stopPropagation();
       startGame();
     }, { passive: false });
@@ -3808,7 +3817,7 @@ function _bindUIEvents() {
       document.getElementById('game-over').style.display = 'none';
       startGame();
     });
-    retryBtn.addEventListener('pointerup', e => {
+    retryBtn.addEventListener('touchend', e => {
       e.preventDefault();
       document.getElementById('game-over').style.display = 'none';
       startGame();
@@ -3824,7 +3833,7 @@ function _bindUIEvents() {
   const skillBtn = document.getElementById('skill-btn');
   if (skillBtn) {
     skillBtn.addEventListener('click', tryUltimate);
-    skillBtn.addEventListener('pointerdown', e => {
+    skillBtn.addEventListener('touchstart', e => {
       e.stopPropagation(); e.preventDefault(); tryUltimate();
     }, { passive: false });
   }
@@ -3832,7 +3841,7 @@ function _bindUIEvents() {
   const jcConfirmBtn = document.getElementById('jc-confirm-btn');
   if (jcConfirmBtn) {
     jcConfirmBtn.addEventListener('click', confirmJobChange);
-    jcConfirmBtn.addEventListener('pointerdown', e => {
+    jcConfirmBtn.addEventListener('touchstart', e => {
       e.stopPropagation(); e.preventDefault(); confirmJobChange();
     }, { passive: false });
   }
@@ -3865,7 +3874,6 @@ function startGame() {
   document.getElementById('main-menu').style.display = 'none';
   document.getElementById('hud').style.display = 'block';
   document.getElementById('pause-btn').style.display = 'flex';
-  document.getElementById('joystick-zone').style.display = 'block';
   document.getElementById('rage-bar-wrap').style.display = 'block';
   document.getElementById('skill-btn').style.display = 'flex';
   document.getElementById('wave-progress').style.display = 'block';
@@ -3875,8 +3883,14 @@ function startGame() {
   wave = 1; kills = 0;
   rage = 0; ultActive = false; ultTimer = 0; ultCooldown = 0;
   jobRank = 0; jobPendingConfirm = false;
-  enemies = []; bullets = []; effects = []; drops = [];
-  blades = []; equipDrops = []; equips = [];
+  // 使用数组池重置（避免内存分配）
+  ArrayPool.reset();
+  enemies = ArrayPool.enemies;
+  bullets = ArrayPool.bullets;
+  effects = ArrayPool.effects;
+  drops = ArrayPool.drops;
+  equipDrops = ArrayPool.equipDrops;
+  blades = []; equips = [];
   // ── 新武器系统重置 ──
   fireOrbs = []; thunderArrayStrikes = []; crossSweeps = [];
   combo = 0; comboTimer = 0; lastKillCount = 0;
@@ -4024,24 +4038,104 @@ function spawnEnemy(isEliteBonusWave, forceBoss) {
     hurtTimer:0, dying:false, dieTimer:0,
     facing:1, shooter:type==='archer', shootTimer:0, shootRate:1.4,
     isElite: isEliteBonusWave }); // 标记精英波
-  _enemiesDirty = true; // 新敌人加入，排序缓存失效
 }
 
 // ════════════════════════════════
-//  主循环（deltaTime）
+//  主循环（Fixed Timestep + FPS监控 + 帧率降级）
 // ════════════════════════════════
 let hudThrottle = 0;
-// ── 全局帧时间戳（秒），每帧由 loop() 统一更新，避免各子函数重复调用 Date.now() ──
-let _frameSec = 0;
+
+// 性能监控
+const PERF = {
+  fps: 60,
+  frameCount: 0,
+  lastFpsTime: 0,
+  avgDt: 0.016,
+  dtHistory: [],
+  // 帧率降级策略
+  targetFps: 60,
+  skipFrames: 0,      // 跳帧计数
+  frameSkip: 0,       // 当前跳帧间隔
+  // 固定时间步长
+  fixedDt: 1/60,      // 16.67ms
+  accumulator: 0,     // 时间累积器
+  maxSubSteps: 5,     // 最大子步数，防止卡顿时过度计算
+};
+
+// FPS 显示元素
+let fpsDisplayEl = null;
+function createFpsDisplay() {
+  if (fpsDisplayEl) return;
+  fpsDisplayEl = document.createElement('div');
+  fpsDisplayEl.id = 'fps-display';
+  fpsDisplayEl.style.cssText = `
+    position:fixed; top:2px; right:2px;
+    font-size:10px; font-family:monospace;
+    color:#0f0; background:rgba(0,0,0,0.6);
+    padding:2px 6px; border-radius:3px;
+    pointer-events:none; z-index:9999;
+  `;
+  document.body.appendChild(fpsDisplayEl);
+}
+
+function updateFpsDisplay() {
+  if (!fpsDisplayEl) createFpsDisplay();
+  const frameTime = (PERF.avgDt * 1000).toFixed(1);
+  const color = PERF.fps >= 55 ? '#0f0' : PERF.fps >= 40 ? '#ff0' : '#f00';
+  fpsDisplayEl.style.color = color;
+  fpsDisplayEl.textContent = `${PERF.fps}FPS ${frameTime}ms`;
+}
+
+// 自适应帧率降级
+function adaptFrameRate() {
+  // 根据平均帧率动态调整
+  if (PERF.fps < 45 && PERF.frameSkip < 2) {
+    PERF.frameSkip++;
+  } else if (PERF.fps > 58 && PERF.frameSkip > 0) {
+    PERF.frameSkip--;
+  }
+}
 
 function loop(now) {
   if (state !== 'battle' || paused) { loopRunning = false; return; }
   loopRunning = true;
-  const dt = Math.min((now - lastTime) / 1000, 0.05); // 秒，限制最大0.05防卡顿
-  lastTime = now;
-  _frameSec = now * 0.001; // 统一时间戳（秒），供所有子系统使用
 
-  update(dt);
+  // 计算 dt
+  let dt = (now - lastTime) / 1000;
+  lastTime = now;
+
+  // FPS 计算
+  PERF.frameCount++;
+  if (now - PERF.lastFpsTime >= 1000) {
+    PERF.fps = PERF.frameCount;
+    PERF.frameCount = 0;
+    PERF.lastFpsTime = now;
+    adaptFrameRate();
+    if (PERF.fps < 60) updateFpsDisplay();
+  }
+
+  // 限制最大 dt（防止卡顿时过度计算）
+  dt = Math.min(dt, PERF.fixedDt * PERF.maxSubSteps);
+  PERF.avgDt = dt;
+
+  // 帧率降级：跳帧处理
+  PERF.skipFrames++;
+  if (PERF.skipFrames <= PERF.frameSkip) {
+    requestAnimationFrame(loop);
+    return;
+  }
+  PERF.skipFrames = 0;
+
+  // 固定时间步长（Fixed Timestep）
+  PERF.accumulator += dt;
+  let steps = 0;
+  while (PERF.accumulator >= PERF.fixedDt && steps < PERF.maxSubSteps) {
+    update(PERF.fixedDt);
+    PERF.accumulator -= PERF.fixedDt;
+    steps++;
+  }
+
+  // 渲染插值（可选，这里简化处理）
   draw();
 
   // HUD 每4帧更新一次（DOM操作节流）
@@ -4056,6 +4150,11 @@ function loop(now) {
 // ════════════════════════════════
 function update(dt) {
   if (jobPendingConfirm) return; // 转职面板打开时暂停所有逻辑
+  
+  // 更新四叉树 - 只包含活跃敌人
+  const activeEnemies = enemies.filter(e => !e.dying);
+  quadtreeManager.insertBatch(activeEnemies);
+  
   updateHero(dt);
   updateBlades(dt);
   // ── 新武器系统 ──
@@ -4206,34 +4305,21 @@ function updateHero(dt) {
 }
 
 function nearestEnemy(x, y, range) {
-  let best=null, minD=range*range;
-  for (const e of enemies) {
-    if (e.dying) continue;
-    const d2 = (e.x-x)**2 + (e.y-y)**2;
-    if (d2 < minD) { minD=d2; best=e; }
-  }
-  return best;
+  // 使用四叉树优化，只查询附近的敌人
+  return quadtreeManager.findNearest(x, y, range);
 }
 
 function updateEnemies(dt) {
+  // 使用AI管理器更新敌人AI
+  aiManager.updateEnemiesAI(enemies, hero, dt);
+  
+  // 处理敌人攻击逻辑
   for (const e of enemies) {
-    if (e.dying) { e.dieTimer += dt; continue; }
+    if (e.dying) continue;
+    
     const dx = hero.x - e.x, dy = hero.y - e.y;
     const dist = Math.sqrt(dx*dx+dy*dy)||1;
-
-    // 击退衰减
-    if (e.knockTimer > 0) {
-      e.knockTimer -= dt;
-      e.x += (e.knockX||0) * dt;
-      e.y += (e.knockY||0) * dt;
-      e.knockX = (e.knockX||0) * 0.75;
-      e.knockY = (e.knockY||0) * 0.75;
-    }
-
-    e.x += dx/dist * e.spd * dt;
-    e.y += dy/dist * e.spd * dt;
-    e.facing = dx>=0 ? 1 : -1;
-
+    
     // 弓箭手射击
     if (e.shooter) {
       e.shootTimer -= dt;
@@ -4245,7 +4331,7 @@ function updateEnemies(dt) {
       }
     }
 
-    // 近战
+    // 近战攻击
     const hitDist = hero.w/2 + e.w/2 - 6;
     if (!e.shooter && dist < hitDist) {
       e.atkTimer -= dt;
@@ -4268,11 +4354,10 @@ function updateEnemies(dt) {
         e.atkTimer = e.atkRate;
       }
     }
-    if (e.hurtTimer > 0) e.hurtTimer -= dt;
   }
+  
   // 移除完成死亡动画的敌人
   enemies = enemies.filter(e => !(e.dying && e.dieTimer > 0.6));
-  _enemiesDirty = true; // 敌人位置/数量发生变化，标记需要重新排序
 }
 
 function updateBullets(dt) {
@@ -4367,12 +4452,88 @@ function updateBullets(dt) {
   bullets = bullets.filter(b => b.life>0 && inBounds(b.x,b.y,80));
 }
 
+// 特效配置（优化版）
+// 特效配置 - 优化版
+const FX_CONFIG = {
+  // 核心特效
+  kill:     { dur: 0.5,  maxCount: 20 },  // 击杀特效
+  levelup:  { dur: 1.0,  maxCount: 3 },   // 升级特效
+  shield:   { dur: 0.6,  maxCount: 8 },   // 护盾特效
+  crit:     { dur: 0.4,  maxCount: 10 },  // 暴击特效
+  hit:      { dur: 0.25, maxCount: 15 },  // 击中特效
+  
+  // 武器特效
+  explode:  { dur: 0.5,  maxCount: 12 },  // 爆炸特效
+  whirl:    { dur: 0.8,  maxCount: 5 },   // 旋风特效
+  thunder:  { dur: 0.5,  maxCount: 8 },   // 雷电特效
+  bladeSlash: { dur: 0.22, maxCount: 15 }, // 刀片 slash特效
+  fireOrb:  { dur: 0.4,  maxCount: 10 },  // 火球特效
+  iceShoot: { dur: 0.2,  maxCount: 15 },  // 冰箭特效
+  fanBurst: { dur: 0.4,  maxCount: 8 },   // 扇子爆发特效
+  homingShoot: { dur: 0.25, maxCount: 12 }, // 追踪射击特效
+  
+  // 全局限制
+  default:  { dur: 0.3,  maxCount: 30 },  // 默认特效
+  global:   { maxTotal: 80 }  // 全局特效数量限制
+};
+
+// 特效计数器 - 优化版（O(1)时间复杂度）
+const fxCounter = {};
+
+// 更新特效计数器
+function updateFXCounter() {
+  // 重置计数器
+  Object.keys(FX_CONFIG).forEach(key => {
+    if (key !== 'default' && key !== 'global') {
+      fxCounter[key] = 0;
+    }
+  });
+  
+  // 统计特效数量
+  for (const e of effects) {
+    const type = e.type || 'default';
+    fxCounter[type] = (fxCounter[type] || 0) + 1;
+  }
+}
+
+// 按类型统计当前特效数量 - 优化版
+function countFXByType(type) {
+  return fxCounter[type] || 0;
+}
+
+// 检查全局特效数量限制
+function checkGlobalFXLimit() {
+  return effects.length < FX_CONFIG.global.maxTotal;
+}
+
 function addFX(x, y, type) {
-  effects.push({ x, y, type, t:0, dur: type==='kill'?0.5:type==='shield'?0.4:type==='cut'?0.25:0.3 });
+  const cfg = FX_CONFIG[type] || FX_CONFIG.default;
+
+  // 性能保护：
+  // 1. 检查全局特效数量限制
+  if (!checkGlobalFXLimit()) {
+    return;
+  }
+  
+  // 2. 检查同类型特效数量限制
+  if (countFXByType(type) >= cfg.maxCount) {
+    return;
+  }
+
+  // 使用对象池获取特效对象
+  const ef = ObjectPool.getEffect({ x, y, type });
+  ef.dur = cfg.dur;
+  effects.push(ef);
+  
+  // 更新特效计数器
+  fxCounter[type] = (fxCounter[type] || 0) + 1;
 }
 function updateEffects(dt) {
   for (const e of effects) e.t += dt;
   effects = effects.filter(e => e.t < e.dur);
+  
+  // 更新特效计数器
+  updateFXCounter();
 }
 
 function updateDrops(dt) {
@@ -4906,7 +5067,6 @@ function endGame() {
   app.style.transform = '';
   document.getElementById('hud').style.display = 'none';
   document.getElementById('pause-btn').style.display = 'none';
-  document.getElementById('joystick-zone').style.display = 'none';
   document.getElementById('rage-bar-wrap').style.display = 'none';
   document.getElementById('skill-btn').style.display = 'none';
   document.getElementById('ultimate-overlay').style.display = 'none';
@@ -5058,277 +5218,380 @@ function updateHUD() {
 }
 
 // ════════════════════════════════
-//  绘制
+//  绘制（性能优化版）
 // ════════════════════════════════
-// ── 离屏背景 Canvas（性能优化：将静态背景预渲染，动态元素单独叠加）──
+// 离屏 canvas 缓存
 let bgCanvas = null;
-let bgCtx = null;
-let _bgCachedW = 0, _bgCachedH = 0;
+let bgCanvasDirty = true;
+let lastBgTime = 0;
 
-// ── 排序缓存（避免每帧 Array.sort）──
-// _sortedEnemies 在 updateEnemies 结束后自动维护，draw() 直接使用
-let _sortedEnemies = [];
-let _enemiesDirty = true; // 标记需要重新排序
+// 渲染状态缓存（减少save/restore）
+const RenderState = {
+  currentAlpha: 1,
+  currentTransform: null,
+  saveCount: 0,
+  
+  reset() {
+    this.currentAlpha = 1;
+    this.saveCount = 0;
+  }
+};
 
 function draw() {
+  // 使用clearRect快速清除
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   applyLogical();
+  RenderState.reset();
 
-  // 背景
-  drawBg();
-  ctx.globalAlpha = 1; // 修复Bug#4：重置背景绘制后的globalAlpha污染
+  // 背景（使用离屏缓存，每帧只绘制动态元素）
+  drawBgOptimized();
 
-  // 排序按Y轴（越下面越前面）—— 只在脏标记时重排
-  if (_enemiesDirty) {
-    _sortedEnemies = enemies.slice().sort((a,b) => a.y - b.y);
-    _enemiesDirty = false;
-  }
-  const sortedEnemies = _sortedEnemies;
+  // 排序按Y轴（使用预分配数组避免slice创建）
+  // 使用插入排序优化（敌人数量通常较少且基本有序）
+  sortEnemiesByY();
 
   // 经验掉落
-  for (const d of drops) drawDrop(d);
+  for (let i = 0; i < drops.length; i++) drawDrop(drops[i]);
 
-  // ── 新武器特效层（在敌人/英雄之下，在背景之上）──
-  drawVajraAura();          // 护体金刚结界（最底层）
-  drawFireOrbs();           // 火球绕身
-  drawThunderArrayStrikes(); // 落雷柱
-  drawCrossSweeps();         // 龙胆横扫
+  // ── 新武器特效层（批量绘制减少状态切换）──
+  drawVajraAura();
+  drawFireOrbs();
+  drawThunderArrayStrikes();
+  drawCrossSweeps();
 
   // 装备掉落物
-  for (const d of equipDrops) drawEquipDrop(d);
+  for (let i = 0; i < equipDrops.length; i++) drawEquipDrop(equipDrops[i]);
 
-  // 子弹
-  for (const b of bullets) drawBullet(b);
+  // 子弹（批量绘制同类型）
+  drawBulletsBatch();
 
-  // 敌人
-  for (const e of sortedEnemies) drawEnemy(e);
+  // 敌人（Y轴排序后绘制）
+  for (let i = 0; i < enemies.length; i++) {
+    if (!enemies[i].dying) drawEnemy(enemies[i]);
+  }
+  // 死亡敌人后绘制（在最上层）
+  for (let i = 0; i < enemies.length; i++) {
+    if (enemies[i].dying) drawEnemy(enemies[i]);
+  }
 
   // 英雄
   drawHero();
 
-  // 旋转刀片（在英雄上层）
+  // 旋转刀片
   drawBlades();
 
-  // 特效
-  for (const ef of effects) drawFX(ef);
-  
-  // 切割轨迹绘制
-  drawCutTrail();
-  
-  // 装备槽HUD（画布上方，英雄下方显示已装备武器）
+  // 特效（批量绘制）
+  drawEffectsBatch();
+
+  // 装备槽HUD
   drawEquipSlots();
 
-  // BOSS 血条（顶部）
-  const boss = enemies.find(e=>e.type==='boss'&&!e.dying);
+  // BOSS 血条
+  const boss = findBoss();
   if (boss) drawBossBar(boss);
 
   resetTransform();
 
-  // 必杀技全屏特效（独立 canvas 层）
+  // 必杀技全屏特效
   drawUltimate();
 
-  // 新手引导提示层（最顶层）
+  // 新手引导提示层
   drawTutorialHints();
+
+  // 虚拟摇杆
+  drawJoystick();
+}
+
+// 优化的背景绘制（使用离屏缓存）
+function drawBgOptimized() {
+  const t = Date.now() * 0.001;
+  
+  // 检查是否需要重绘背景（动态元素变化）
+  const bgNeedsRedraw = bgCanvasDirty || !bgCanvas || Math.floor(t) !== Math.floor(lastBgTime);
+  
+  if (!bgCanvas) {
+    bgCanvas = document.createElement('canvas');
+    bgCanvas.width = LW;
+    bgCanvas.height = LH;
+  }
+  
+  if (bgNeedsRedraw) {
+    const bgCtx = bgCanvas.getContext('2d');
+    bgCtx.clearRect(0, 0, LW, LH);
+    
+    // 静态背景绘制到离屏canvas
+    drawStaticBg(bgCtx, t);
+    lastBgTime = t;
+    bgCanvasDirty = false;
+  }
+  
+  // 绘制缓存的背景
+  ctx.drawImage(bgCanvas, 0, 0);
+  
+  // 绘制动态元素（星空闪烁、云层等）
+  drawDynamicBgElements(t);
+}
+
+// 静态背景绘制
+function drawStaticBg(c, t) {
+  // 天空渐变
+  const grad = c.createLinearGradient(0,0,0,LH*0.65);
+  grad.addColorStop(0,'#030010');
+  grad.addColorStop(0.3,'#0d0320');
+  grad.addColorStop(0.65,'#1e0808');
+  c.fillStyle = grad;
+  c.fillRect(0,0,LW,LH*0.65);
+
+  // 远山剪影（静态）
+  c.fillStyle='rgba(15,5,25,0.95)';
+  c.beginPath();
+  c.moveTo(0, LH*0.58);
+  c.bezierCurveTo(LW*0.1,LH*0.42, LW*0.25,LH*0.5, LW*0.35,LH*0.44);
+  c.bezierCurveTo(LW*0.45,LH*0.38, LW*0.55,LH*0.46, LW*0.6,LH*0.42);
+  c.bezierCurveTo(LW*0.7,LH*0.36, LW*0.8,LH*0.5, LW*0.9,LH*0.46);
+  c.lineTo(LW, LH*0.52);
+  c.lineTo(LW, LH*0.65);
+  c.lineTo(0, LH*0.65);
+  c.fill();
+
+  // 月亮（相对静态）
+  const moonX = LW*0.8, moonY = LH*0.1;
+  const halo=c.createRadialGradient(moonX,moonY,12,moonX,moonY,70);
+  halo.addColorStop(0,'rgba(255,220,100,0.18)');
+  halo.addColorStop(0.5,'rgba(255,150,50,0.06)');
+  halo.addColorStop(1,'rgba(0,0,0,0)');
+  c.fillStyle=halo; c.beginPath(); c.arc(moonX,moonY,70,0,Math.PI*2); c.fill();
+  const mg=c.createRadialGradient(moonX-4,moonY-4,3,moonX,moonY,20);
+  mg.addColorStop(0,'rgba(255,248,210,0.98)');
+  mg.addColorStop(0.65,'rgba(255,230,150,0.5)');
+  mg.addColorStop(1,'rgba(255,200,80,0)');
+  c.fillStyle=mg; c.beginPath(); c.arc(moonX,moonY,20,0,Math.PI*2); c.fill();
+
+  // 地面
+  const groundGrad = c.createLinearGradient(0,LH*0.62,0,LH);
+  groundGrad.addColorStop(0,'#2a1508');
+  groundGrad.addColorStop(0.3,'#3a1e0a');
+  groundGrad.addColorStop(0.7,'#301606');
+  groundGrad.addColorStop(1,'#1e0e04');
+  c.fillStyle = groundGrad;
+  c.fillRect(0,LH*0.62,LW,LH*0.38);
+}
+
+// 动态背景元素
+function drawDynamicBgElements(t) {
+  // 星空（简化版）
+  ctx.globalAlpha=0.7;
+  for(let i=0;i<30;i++){
+    const sx=(i*137.5%1)*LW, sy=(i*97.3%1)*LH*0.58;
+    const sr=0.3+((i*31)%3)*0.5;
+    const sa=0.3+0.6*Math.abs(Math.sin(t*1.2+i*0.7));
+    ctx.globalAlpha=sa*0.7;
+    ctx.fillStyle='#fffde0';
+    ctx.beginPath(); ctx.arc(sx,sy,sr,0,Math.PI*2); ctx.fill();
+  }
+  ctx.globalAlpha=1;
+}
+
+// 插入排序（比快速排序更适合基本有序的小数组）
+function sortEnemiesByY() {
+  const n = enemies.length;
+  for (let i = 1; i < n; i++) {
+    const key = enemies[i];
+    let j = i - 1;
+    while (j >= 0 && enemies[j].y > key.y) {
+      enemies[j + 1] = enemies[j];
+      j--;
+    }
+    enemies[j + 1] = key;
+  }
+}
+
+// 查找BOSS（避免多次遍历）
+function findBoss() {
+  for (let i = 0; i < enemies.length; i++) {
+    if (enemies[i].type === 'boss' && !enemies[i].dying) return enemies[i];
+  }
+  return null;
+}
+
+// 批量绘制子弹（减少状态切换）
+function drawBulletsBatch() {
+  // 按类型分组绘制
+  for (let i = 0; i < bullets.length; i++) {
+    drawBullet(bullets[i]);
+  }
+}
+
+// 批量绘制特效
+function drawEffectsBatch() {
+  for (let i = 0; i < effects.length; i++) {
+    drawFX(effects[i]);
+  }
 }
 
 function drawBg() {
   const key = 'bg_battle';
   if (IMG[key]&&IMG[key].complete&&IMG[key].naturalWidth>0) {
     ctx.drawImage(IMG[key], 0, 0, LW, LH);
-    return;
-  }
+  } else {
+    // ── 腾讯级程序背景 ──
+    const t = Date.now() * 0.001;
 
-  // ── 离屏静态层：首次或尺寸变化时重新生成 ──
-  if (!bgCanvas || _bgCachedW !== LW || _bgCachedH !== LH) {
-    bgCanvas = document.createElement('canvas');
-    bgCanvas.width  = LW;
-    bgCanvas.height = LH;
-    bgCtx = bgCanvas.getContext('2d');
-    _bgCachedW = LW; _bgCachedH = LH;
-
-    const bc = bgCtx;
-
-    // 天空渐变（深紫→深红，战场氛围）—— 静态，只生成一次
-    const grad = bc.createLinearGradient(0,0,0,LH*0.65);
+    // 天空渐变（深紫→深红，战场氛围）
+    const grad = ctx.createLinearGradient(0,0,0,LH*0.65);
     grad.addColorStop(0,'#030010');
     grad.addColorStop(0.3,'#0d0320');
     grad.addColorStop(0.65,'#1e0808');
-    bc.fillStyle = grad;
-    bc.fillRect(0,0,LW,LH*0.65);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0,0,LW,LH*0.65);
 
-    // 固定小星星（不闪烁，作为背景底色）
-    for(let i=0;i<45;i++){
+    // 星空（两层：背景固定星+前景动态星）
+    for(let i=0;i<60;i++){
       const sx=(i*137.5%1)*LW, sy=(i*97.3%1)*LH*0.58;
-      const sr=0.3+((i*31)%3)*0.4;
-      bc.globalAlpha=0.35;
-      bc.fillStyle='#fffde0';
-      bc.beginPath(); bc.arc(sx,sy,sr,0,Math.PI*2); bc.fill();
+      const sr=0.3+((i*31)%3)*0.5;
+      const sa=0.3+0.6*Math.abs(Math.sin(t*1.2+i*0.7));
+      ctx.globalAlpha=sa*0.7;
+      ctx.fillStyle='#fffde0';
+      ctx.beginPath(); ctx.arc(sx,sy,sr,0,Math.PI*2); ctx.fill();
     }
-    bc.globalAlpha=1;
+    // 亮星带光晕
+    for(let i=0;i<8;i++){
+      const sx=(i*211.3%1)*LW*0.95+LW*0.025;
+      const sy=(i*137.7%1)*LH*0.45;
+      const glow=ctx.createRadialGradient(sx,sy,0,sx,sy,4+i%3*2);
+      glow.addColorStop(0,`rgba(255,250,200,${0.6+0.3*Math.sin(t*2.5+i)})`);
+      glow.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.globalAlpha=1;
+      ctx.fillStyle=glow;
+      ctx.beginPath(); ctx.arc(sx,sy,4+i%3*2,0,Math.PI*2); ctx.fill();
+    }
+    ctx.globalAlpha=1;
 
-    // 远山剪影 —— 静态
-    bc.fillStyle='rgba(15,5,25,0.95)';
-    bc.beginPath();
-    bc.moveTo(0, LH*0.58);
-    bc.bezierCurveTo(LW*0.1,LH*0.42, LW*0.25,LH*0.5, LW*0.35,LH*0.44);
-    bc.bezierCurveTo(LW*0.45,LH*0.38, LW*0.55,LH*0.46, LW*0.6,LH*0.42);
-    bc.bezierCurveTo(LW*0.7,LH*0.36, LW*0.8,LH*0.5, LW*0.9,LH*0.46);
-    bc.lineTo(LW, LH*0.52);
-    bc.lineTo(LW, LH*0.65);
-    bc.lineTo(0, LH*0.65);
-    bc.fill();
+    // 远山剪影
+    ctx.fillStyle='rgba(15,5,25,0.95)';
+    ctx.beginPath();
+    ctx.moveTo(0, LH*0.58);
+    ctx.bezierCurveTo(LW*0.1,LH*0.42, LW*0.25,LH*0.5, LW*0.35,LH*0.44);
+    ctx.bezierCurveTo(LW*0.45,LH*0.38, LW*0.55,LH*0.46, LW*0.6,LH*0.42);
+    ctx.bezierCurveTo(LW*0.7,LH*0.36, LW*0.8,LH*0.5, LW*0.9,LH*0.46);
+    ctx.lineTo(LW, LH*0.52);
+    ctx.lineTo(LW, LH*0.65);
+    ctx.lineTo(0, LH*0.65);
+    ctx.fill();
 
-    // 月亮（静态，光晕在动态层）
+    // 月亮（带光晕）
+    ctx.save();
     const moonX = LW*0.8, moonY = LH*0.1;
-    const mg=bc.createRadialGradient(moonX-4,moonY-4,3,moonX,moonY,20);
+    // 月晕
+    const halo=ctx.createRadialGradient(moonX,moonY,12,moonX,moonY,70);
+    halo.addColorStop(0,'rgba(255,220,100,0.18)');
+    halo.addColorStop(0.5,'rgba(255,150,50,0.06)');
+    halo.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=halo; ctx.beginPath(); ctx.arc(moonX,moonY,70,0,Math.PI*2); ctx.fill();
+    // 月亮本体
+    const mg=ctx.createRadialGradient(moonX-4,moonY-4,3,moonX,moonY,20);
     mg.addColorStop(0,'rgba(255,248,210,0.98)');
     mg.addColorStop(0.65,'rgba(255,230,150,0.5)');
     mg.addColorStop(1,'rgba(255,200,80,0)');
-    bc.fillStyle=mg; bc.beginPath(); bc.arc(moonX,moonY,20,0,Math.PI*2); bc.fill();
-    bc.fillStyle='rgba(200,160,60,0.15)';
-    bc.beginPath(); bc.arc(moonX+5,moonY+5,18,0,Math.PI*2); bc.fill();
+    ctx.fillStyle=mg; ctx.beginPath(); ctx.arc(moonX,moonY,20,0,Math.PI*2); ctx.fill();
+    // 月面暗部
+    ctx.fillStyle='rgba(200,160,60,0.15)';
+    ctx.beginPath(); ctx.arc(moonX+5,moonY+5,18,0,Math.PI*2); ctx.fill();
+    ctx.restore();
 
-    // 地面 —— 静态
-    const groundGrad = bc.createLinearGradient(0,LH*0.62,0,LH);
+    // 云层（淡淡的战场烽烟）
+    for(let i=0;i<3;i++){
+      const cx = ((t*0.02*(i%2===0?1:-0.7)+i*0.35)%1.3-0.15)*LW;
+      const cy = LH*(0.2+i*0.08);
+      const cr = 50+i*20;
+      const cg=ctx.createRadialGradient(cx,cy,cr*0.2,cx,cy,cr);
+      cg.addColorStop(0,`rgba(60,15,15,${0.12+i*0.03})`);
+      cg.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle=cg;
+      ctx.beginPath(); ctx.arc(cx,cy,cr,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx+cr*0.5,cy-cr*0.2,cr*0.7,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx-cr*0.4,cy-cr*0.1,cr*0.6,0,Math.PI*2); ctx.fill();
+    }
+
+    // 地面（战场泥土）
+    const groundGrad = ctx.createLinearGradient(0,LH*0.62,0,LH);
     groundGrad.addColorStop(0,'#2a1508');
     groundGrad.addColorStop(0.3,'#3a1e0a');
     groundGrad.addColorStop(0.7,'#301606');
     groundGrad.addColorStop(1,'#1e0e04');
-    bc.fillStyle = groundGrad;
-    bc.fillRect(0,LH*0.62,LW,LH*0.38);
+    ctx.fillStyle = groundGrad;
+    ctx.fillRect(0,LH*0.62,LW,LH*0.38);
 
-    // 地面战壕线条 —— 静态
-    bc.strokeStyle='rgba(80,40,10,0.3)'; bc.lineWidth=1;
+    // 地面战壕线条
+    ctx.strokeStyle='rgba(80,40,10,0.3)'; ctx.lineWidth=1;
     for(let j=0;j<5;j++){
       const yy=LH*0.65+j*(LH*0.1);
-      bc.beginPath(); bc.moveTo(0,yy); bc.lineTo(LW,yy); bc.stroke();
+      ctx.beginPath(); ctx.moveTo(0,yy); ctx.lineTo(LW,yy); ctx.stroke();
     }
 
-    // 透视地面网格 —— 静态
-    bc.strokeStyle='rgba(200,120,40,0.05)'; bc.lineWidth=0.8;
+    // 透视地面网格（更密集、带透视感）
+    ctx.strokeStyle='rgba(200,120,40,0.05)'; ctx.lineWidth=0.8;
     const gy = LH*0.63;
-    const vanishX = LW/2;
+    const vanishX = LW/2, vanishY = gy;
     for(let i=0;i<=12;i++){
       const gx = (i/12)*LW;
-      bc.beginPath(); bc.moveTo(gx,LH); bc.lineTo(vanishX+(gx-vanishX)*0.1,gy); bc.stroke();
+      ctx.beginPath(); ctx.moveTo(gx,LH); ctx.lineTo(vanishX+(gx-vanishX)*0.1,vanishY); ctx.stroke();
     }
     for(let j=1;j<6;j++){
       const yy=gy+j*(LH-gy)/5;
-      bc.beginPath(); bc.moveTo(0,yy); bc.lineTo(LW,yy); bc.stroke();
+      ctx.beginPath(); ctx.moveTo(0,yy); ctx.lineTo(LW,yy); ctx.stroke();
     }
 
-    // 烽火台塔身 —— 静态（火焰在动态层）
-    bc.fillStyle='rgba(10,4,2,0.95)';
-    const _towers = [
+    // 烽火台（远景剪影，带火光）
+    ctx.fillStyle='rgba(10,4,2,0.95)';
+    const towers = [
       [55, LH*0.52, 14, 85],
       [LW*0.48, LH*0.46, 18, 105],
       [LW-65, LH*0.50, 12, 75],
     ];
-    for(const [tx,ty,tw,th] of _towers) {
-      bc.fillRect(tx-tw/2, ty-th, tw, th);
+    for(const [tx,ty,tw,th] of towers) {
+      // 塔身
+      ctx.fillRect(tx-tw/2, ty-th, tw, th);
+      // 城墙顶部
       for(let m=0;m<3;m++){
-        bc.fillRect(tx-tw/2+m*(tw/3), ty-th-12, tw/3-2, 14);
+        ctx.fillRect(tx-tw/2+m*(tw/3), ty-th-12, tw/3-2, 14);
       }
+      // 烽火光焰
+      const flame = t*3 + tx;
+      const flameR = 18+4*Math.sin(flame);
+      const fg=ctx.createRadialGradient(tx,ty-th-10,2,tx,ty-th-10,flameR);
+      fg.addColorStop(0,`rgba(255,200,50,${0.6+0.2*Math.sin(flame)})`);
+      fg.addColorStop(0.5,`rgba(255,80,0,${0.3+0.1*Math.sin(flame+1)})`);
+      fg.addColorStop(1,'rgba(255,40,0,0)');
+      ctx.fillStyle=fg;
+      ctx.beginPath(); ctx.arc(tx,ty-th-10,flameR,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='rgba(10,4,2,0.95)';
     }
 
-    // 旗杆 —— 静态（旗面在动态层）
-    const _flags = [[LW*0.25, LH*0.42], [LW*0.75, LH*0.40]];
-    for(const [fx,fy] of _flags) {
-      bc.strokeStyle = 'rgba(160,30,10,0.8)'; bc.lineWidth=1.5;
-      bc.beginPath(); bc.moveTo(fx,fy); bc.lineTo(fx,fy-25); bc.stroke();
+    // 旗帜（飘扬动效）
+    const flags = [[LW*0.25, LH*0.42], [LW*0.75, LH*0.40]];
+    for(const [fx,fy] of flags) {
+      const wave2 = Math.sin(t*3+fx) * 4;
+      ctx.strokeStyle = 'rgba(160,30,10,0.8)'; ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.moveTo(fx,fy); ctx.lineTo(fx,fy-25); ctx.stroke();
+      ctx.fillStyle = 'rgba(200,30,10,0.7)';
+      ctx.beginPath();
+      ctx.moveTo(fx, fy-25);
+      ctx.lineTo(fx+16+wave2, fy-20+wave2*0.3);
+      ctx.lineTo(fx+14+wave2*0.7, fy-15+wave2*0.2);
+      ctx.lineTo(fx, fy-18);
+      ctx.fill();
     }
+
+    ctx.globalAlpha = 1;
   }
-
-  // ── 1. 绘制离屏静态层（1次 drawImage，极其廉价）──
-  ctx.drawImage(bgCanvas, 0, 0);
-
-  // ── 2. 动态层：使用全局 _frameSec 避免重复 Date.now() ──
-  const t = _frameSec;
-
-  // 闪烁亮星（15颗，减少数量提升性能）
-  for(let i=0;i<8;i++){
-    const sx=(i*211.3%1)*LW*0.95+LW*0.025;
-    const sy=(i*137.7%1)*LH*0.45;
-    const glow=ctx.createRadialGradient(sx,sy,0,sx,sy,4+i%3*2);
-    glow.addColorStop(0,`rgba(255,250,200,${0.5+0.3*Math.sin(t*2.5+i)})`);
-    glow.addColorStop(1,'rgba(0,0,0,0)');
-    ctx.globalAlpha=1;
-    ctx.fillStyle=glow;
-    ctx.beginPath(); ctx.arc(sx,sy,4+i%3*2,0,Math.PI*2); ctx.fill();
-  }
-  // 动态星星闪烁（仅15颗主星，背景小星已预渲染）
-  for(let i=0;i<15;i++){
-    const idx = i * 4 + 3; // 使用与静态层不同的星星
-    const sx=(idx*137.5%1)*LW, sy=(idx*97.3%1)*LH*0.58;
-    const sr=0.4+((idx*31)%3)*0.35;
-    const sa=0.4+0.55*Math.abs(Math.sin(t*1.2+idx*0.7));
-    ctx.globalAlpha=sa*0.7;
-    ctx.fillStyle='#fffde0';
-    ctx.beginPath(); ctx.arc(sx,sy,sr,0,Math.PI*2); ctx.fill();
-  }
-  ctx.globalAlpha=1;
-
-  // 月晕动态呼吸（半径周期性变化）
-  const moonX = LW*0.8, moonY = LH*0.1;
-  const haloR = 65 + 5*Math.sin(t*0.8);
-  const halo=ctx.createRadialGradient(moonX,moonY,12,moonX,moonY,haloR);
-  halo.addColorStop(0,'rgba(255,220,100,0.15)');
-  halo.addColorStop(0.5,'rgba(255,150,50,0.05)');
-  halo.addColorStop(1,'rgba(0,0,0,0)');
-  ctx.fillStyle=halo; ctx.beginPath(); ctx.arc(moonX,moonY,haloR,0,Math.PI*2); ctx.fill();
-
-  // 云层移动（使用 sin 近似替代 %1.3 浮点运算）
-  for(let i=0;i<3;i++){
-    const cx = ((t*0.02*(i%2===0?1:-0.7)+i*0.35)%1.3-0.15)*LW;
-    const cy = LH*(0.2+i*0.08);
-    const cr = 50+i*20;
-    const cg=ctx.createRadialGradient(cx,cy,cr*0.2,cx,cy,cr);
-    cg.addColorStop(0,`rgba(60,15,15,${0.12+i*0.03})`);
-    cg.addColorStop(1,'rgba(0,0,0,0)');
-    ctx.fillStyle=cg;
-    ctx.beginPath(); ctx.arc(cx,cy,cr,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(cx+cr*0.5,cy-cr*0.2,cr*0.7,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(cx-cr*0.4,cy-cr*0.1,cr*0.6,0,Math.PI*2); ctx.fill();
-  }
-
-  // 烽火台动态火焰
-  const towers = [
-    [55, LH*0.52, 14, 85],
-    [LW*0.48, LH*0.46, 18, 105],
-    [LW-65, LH*0.50, 12, 75],
-  ];
-  for(const [tx,ty,,th] of towers) {
-    const flame = t*3 + tx;
-    const flameR = 18+4*Math.sin(flame);
-    const fg=ctx.createRadialGradient(tx,ty-th-10,2,tx,ty-th-10,flameR);
-    fg.addColorStop(0,`rgba(255,200,50,${0.6+0.2*Math.sin(flame)})`);
-    fg.addColorStop(0.5,`rgba(255,80,0,${0.3+0.1*Math.sin(flame+1)})`);
-    fg.addColorStop(1,'rgba(255,40,0,0)');
-    ctx.fillStyle=fg;
-    ctx.beginPath(); ctx.arc(tx,ty-th-10,flameR,0,Math.PI*2); ctx.fill();
-  }
-
-  // 旗帜飘扬
-  const flags = [[LW*0.25, LH*0.42], [LW*0.75, LH*0.40]];
-  for(const [fx,fy] of flags) {
-    const wave2 = Math.sin(t*3+fx) * 4;
-    ctx.fillStyle = 'rgba(200,30,10,0.7)';
-    ctx.beginPath();
-    ctx.moveTo(fx, fy-25);
-    ctx.lineTo(fx+16+wave2, fy-20+wave2*0.3);
-    ctx.lineTo(fx+14+wave2*0.7, fy-15+wave2*0.2);
-    ctx.lineTo(fx, fy-18);
-    ctx.fill();
-  }
-
-  ctx.globalAlpha = 1;
 }
 
 // ════════════════════════════════
 //  敌人矢量绘制系统
 // ════════════════════════════════
 function _drawEnemyVector(c, e) {
-  const t = _frameSec; // 使用全局帧时间戳，避免每敌人调用 Date.now()
+  const t = Date.now() * 0.001;
   const type = e.type;
   const w = e.w, h = e.h;
   const hw = w/2, hh = h/2;
@@ -5602,6 +5865,9 @@ function _drawBossEnemy(c, t, w, h, pose, e, walkOsc) {
   }
 }
 
+// 敌人绘制缓存
+const enemyDrawCache = new Map();
+
 function drawEnemy(e) {
   // 确定当前动作帧：die / hurt(用walk代替，部分敌人无hurt帧) / walk / idle
   const rawPose = e.dying ? 'die' : (e.hurtTimer>0 ? 'hurt' : 'walk');
@@ -5612,35 +5878,70 @@ function drawEnemy(e) {
       ? 0.55 + 0.45*Math.sin(Date.now()*0.03)
       : 1.0;
 
-  ctx.save();
-  ctx.translate(e.x, e.y);
-  if (e.facing < 0) ctx.scale(-1,1);
-  ctx.globalAlpha = eAlpha;
+  // 批量设置状态（减少save/restore）
+  const needsTransform = e.facing < 0 || eAlpha !== 1;
+  
+  if (needsTransform) {
+    ctx.save();
+    ctx.translate(e.x, e.y);
+    if (e.facing < 0) ctx.scale(-1,1);
+    if (eAlpha !== 1) ctx.globalAlpha = eAlpha;
+  } else {
+    // 无变换时直接设置位置
+    ctx.translate(e.x, e.y);
+  }
 
-  // ── 优先使用PNG贴图；无贴图降级为矢量绘制 ──
+  // ── 优先使用纹理图集；其次使用PNG贴图；无贴图降级为矢量绘制 ──
   // hurt帧：敌人资源只有idle/walk/die，hurt时用idle替代
   const poseList = [rawPose, 'idle', 'walk'];
-  let eImgObj = null;
+  let drawn = false;
+  
+  // 尝试使用纹理图集
   for (const p of poseList) {
-    const k = e.type + '_' + p;
-    if (IMG[k] && IMG[k].complete && IMG[k].naturalWidth > 0) {
-      eImgObj = IMG[k]; break;
+    const textureName = e.type + '_' + p;
+    if (textureAtlas.hasTexture(textureName)) {
+      // boss体积更大，其他敌人统一尺寸
+      const scale = e.type === 'boss' ? 1.8 : 1.5;
+      const pw = e.w * scale;
+      const ph = e.h * scale;
+      textureAtlas.drawTexture(ctx, textureName, -pw/2, -ph/2 - ph*0.05, pw, ph);
+      drawn = true;
+      break;
     }
   }
-  if (eImgObj) {
-    // boss体积更大，其他敌人统一尺寸
-    const scale = e.type === 'boss' ? 1.8 : 1.5;
-    const pw = e.w * scale;
-    const ph = e.h * scale;
-    ctx.drawImage(eImgObj, -pw/2, -ph/2 - ph*0.05, pw, ph);
-  } else {
-    // 降级：矢量绘制
+  
+  // 尝试使用PNG贴图
+  if (!drawn) {
+    let eImgObj = null;
+    for (const p of poseList) {
+      const k = e.type + '_' + p;
+      if (IMG[k] && IMG[k].complete && IMG[k].naturalWidth > 0) {
+        eImgObj = IMG[k]; break;
+      }
+    }
+    if (eImgObj) {
+      // boss体积更大，其他敌人统一尺寸
+      const scale = e.type === 'boss' ? 1.8 : 1.5;
+      const pw = e.w * scale;
+      const ph = e.h * scale;
+      ctx.drawImage(eImgObj, -pw/2, -ph/2 - ph*0.05, pw, ph);
+      drawn = true;
+    }
+  }
+  
+  // 降级：矢量绘制
+  if (!drawn) {
     _drawEnemyVector(ctx, e);
   }
 
-  ctx.restore();
+  if (needsTransform) {
+    ctx.restore();
+  } else {
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    applyLogical();
+  }
 
-  // HP 条（在restore后用绝对坐标绘制，确保alpha=1）
+  // HP 条（在绝对坐标绘制）
   if (!e.dying) {
     const bw = e.w+4, bh=5;
     const bx = e.x-bw/2, by=e.y-e.h/2-8;
@@ -5694,25 +5995,49 @@ function drawHero() {
   ctx.fillStyle=g; ctx.beginPath(); ctx.ellipse(0,hero.h/2-2,24,8,0,0,Math.PI*2); ctx.fill();
   ctx.restore();
 
-  // ── 优先使用PNG贴图；贴图未就绪时降级为矢量绘制 ──
+  // ── 优先使用纹理图集；其次使用PNG贴图；无贴图降级为矢量绘制 ──
   ctx.globalAlpha = heroAlpha;
   // 先尝试 attack 姿态，archer没有hurt帧时用idle代替
   const imgKey = hero.type + '_' + pose;
   const fallbackKey = hero.type + '_idle';
-  const imgObj = (IMG[imgKey] && IMG[imgKey].complete && IMG[imgKey].naturalWidth > 0)
-                   ? IMG[imgKey]
-                   : (IMG[fallbackKey] && IMG[fallbackKey].complete && IMG[fallbackKey].naturalWidth > 0)
-                     ? IMG[fallbackKey]
-                     : null;
-  if (imgObj) {
-    // PNG贴图绘制：以英雄中心(0,0)为锚点，向上绘制整个身高
+  let drawn = false;
+  
+  // 尝试使用纹理图集
+  if (textureAtlas.hasTexture(imgKey)) {
+    // 纹理图集绘制：以英雄中心(0,0)为锚点，向上绘制整个身高
     const pw = hero.w * 1.6;  // 图片比角色碰撞宽一些，视觉更好
     const ph = hero.h * 1.6;
-    ctx.drawImage(imgObj, -pw/2, -ph/2 - ph*0.05, pw, ph);
-  } else {
+    textureAtlas.drawTexture(ctx, imgKey, -pw/2, -ph/2 - ph*0.05, pw, ph);
+    drawn = true;
+  } else if (textureAtlas.hasTexture(fallbackKey)) {
+    // 纹理图集绘制：以英雄中心(0,0)为锚点，向上绘制整个身高
+    const pw = hero.w * 1.6;  // 图片比角色碰撞宽一些，视觉更好
+    const ph = hero.h * 1.6;
+    textureAtlas.drawTexture(ctx, fallbackKey, -pw/2, -ph/2 - ph*0.05, pw, ph);
+    drawn = true;
+  }
+  
+  // 尝试使用PNG贴图
+  if (!drawn) {
+    const imgObj = (IMG[imgKey] && IMG[imgKey].complete && IMG[imgKey].naturalWidth > 0)
+                     ? IMG[imgKey]
+                     : (IMG[fallbackKey] && IMG[fallbackKey].complete && IMG[fallbackKey].naturalWidth > 0)
+                       ? IMG[fallbackKey]
+                       : null;
+    
+    if (imgObj) {
+      // PNG贴图绘制：以英雄中心(0,0)为锚点，向上绘制整个身高
+      const pw = hero.w * 1.6;  // 图片比角色碰撞宽一些，视觉更好
+      const ph = hero.h * 1.6;
+      ctx.drawImage(imgObj, -pw/2, -ph/2 - ph*0.05, pw, ph);
+      drawn = true;
+    }
+  }
+  
+  if (!drawn) {
     // 降级：矢量绘制
     const heroColor = hero.jobColor || HERO_CFG[hero.type]?.color || '#88ff88';
-    const tNow = _frameSec; // 使用全局帧时间戳
+    const tNow = Date.now() * 0.001;
     drawHeroVector(ctx, hero.type, {
       t: tNow, w: hero.w, h: hero.h, pose,
       jobColor: heroColor,
@@ -6011,79 +6336,191 @@ function drawFX(ef) {
     return;
   }
 
-  // 原有特效
-  ctx.globalAlpha = 1-p;
-  ctx.translate(ef.x, ef.y);
-  
-  // 切割特效：斜向斩击线
-  if (ef.type === 'cut') {
-    const len = 35;
-    const angle = Math.random() * Math.PI * 2;
-    ctx.rotate(angle);
-    ctx.strokeStyle = `rgba(255, 255, 255, ${0.9 * (1-p)})`;
-    ctx.lineWidth = 3;
-    ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.moveTo(-len/2, -len/2);
-    ctx.lineTo(len/2, len/2);
-    ctx.stroke();
-    // 光晕
-    ctx.strokeStyle = `rgba(255, 200, 0, ${0.5 * (1-p)})`;
-    ctx.lineWidth = 5;
-    ctx.stroke();
-    ctx.restore();
-    return;
-  }
-  
-  const sc = ef.type==='levelup' ? 1+p*2.5 : 1+p*1.5;
-  ctx.scale(sc,sc);
-  const key = 'effect_'+ef.type;
-  if (IMG[key]&&IMG[key].complete&&IMG[key].naturalWidth>0) {
-    ctx.drawImage(IMG[key], -22,-22,44,44);
-  } else {
-    ctx.fillStyle = ef.type==='kill'?'#fa0':ef.type==='levelup'?'#0f0':ef.type==='shield'?'#4af':ef.type==='cut'?'#fff':'#f44';
-    ctx.beginPath(); ctx.arc(0,0,18,0,Math.PI*2); ctx.fill();
-  }
+  // 升级粒子特效系统（腾讯级品质）
+  drawPremiumFX(ef, p);
   ctx.restore();
 }
 
-// ── 切割轨迹绘制 ─────────────────────────────────────────
-function drawCutTrail() {
-  if (!isCutting || cutPoints.length < 2) return;
-  
-  ctx.save();
-  
-  // 将切割点转换为游戏坐标
-  const gamePoints = cutPoints.map(pt => {
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const canvasX = (pt.x) * dpr;
-    const canvasY = (pt.y) * dpr;
-    const gameX = (canvasX - offsetX) / scale;
-    const gameY = (canvasY - offsetY) / scale;
-    return { x: gameX, y: gameY };
-  });
-  
-  // 绘制轨迹线
-  const now = Date.now();
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-  ctx.lineWidth = 4;
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  
-  ctx.beginPath();
-  ctx.moveTo(gamePoints[0].x, gamePoints[0].y);
-  
-  for (let i = 1; i < gamePoints.length; i++) {
-    ctx.lineTo(gamePoints[i].x, gamePoints[i].y);
+// 高级粒子特效（腾讯TOP5品质）
+function drawPremiumFX(ef, p) {
+  const t = Date.now() * 0.001;
+  const x = ef.x, y = ef.y;
+
+  switch(ef.type) {
+    case 'kill':
+      // 击杀特效 - 金色爆发
+      drawKillFX(x, y, p, t);
+      break;
+    case 'levelup':
+      // 升级特效 - 彩虹光环
+      drawLevelUpFX(x, y, p, t);
+      break;
+    case 'shield':
+      // 护盾特效 - 蓝色光盾
+      drawShieldFX(x, y, p, t);
+      break;
+    case 'crit':
+      // 暴击特效 - 红色爆裂
+      drawCritFX(x, y, p, t);
+      break;
+    default:
+      // 默认特效
+      ctx.globalAlpha = 1-p;
+      ctx.translate(x, y);
+      const sc = 1+p*1.5;
+      ctx.scale(sc,sc);
+      ctx.fillStyle = '#fa0';
+      ctx.beginPath(); ctx.arc(0,0,18,0,Math.PI*2); ctx.fill();
   }
-  ctx.stroke();
-  
-  // 光晕效果
-  ctx.strokeStyle = 'rgba(255, 200, 0, 0.5)';
-  ctx.lineWidth = 8;
-  ctx.stroke();
-  
-  ctx.restore();
+}
+
+// 击杀特效（金色粒子爆发）
+function drawKillFX(x, y, p, t) {
+  const particleCount = 8;
+  ctx.globalAlpha = 1 - p;
+
+  for (let i = 0; i < particleCount; i++) {
+    const angle = (Math.PI * 2 / particleCount) * i + t;
+    const dist = p * 40;
+    const px = x + Math.cos(angle) * dist;
+    const py = y + Math.sin(angle) * dist;
+    const size = (1 - p) * 6;
+
+    // 金色渐变粒子
+    const grad = ctx.createRadialGradient(px, py, 0, px, py, size);
+    grad.addColorStop(0, 'rgba(255, 230, 150, 1)');
+    grad.addColorStop(0.5, 'rgba(255, 180, 50, 0.8)');
+    grad.addColorStop(1, 'rgba(255, 100, 0, 0)');
+
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(px, py, size, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // 中心闪光
+  const flashSize = (1 - p) * 25;
+  const flashGrad = ctx.createRadialGradient(x, y, 0, x, y, flashSize);
+  flashGrad.addColorStop(0, 'rgba(255, 255, 200, 0.9)');
+  flashGrad.addColorStop(0.3, 'rgba(255, 200, 50, 0.5)');
+  flashGrad.addColorStop(1, 'rgba(255, 150, 0, 0)');
+
+  ctx.fillStyle = flashGrad;
+  ctx.beginPath();
+  ctx.arc(x, y, flashSize, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+// 升级特效（彩虹光环+粒子上升）
+function drawLevelUpFX(x, y, p, t) {
+  const ringCount = 3;
+
+  for (let i = 0; i < ringCount; i++) {
+    const ringP = Math.min(1, p * (1 + i * 0.3));
+    const radius = ringP * 60;
+    const alpha = 1 - ringP;
+
+    // 彩虹色环
+    const hue = (t * 100 + i * 60) % 360;
+    ctx.strokeStyle = `hsla(${hue}, 80%, 60%, ${alpha})`;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  // 上升粒子
+  const particleCount = 12;
+  ctx.globalAlpha = 1 - p;
+
+  for (let i = 0; i < particleCount; i++) {
+    const angle = (Math.PI * 2 / particleCount) * i;
+    const dist = 20 + p * 30;
+    const px = x + Math.cos(angle) * dist * 0.3;
+    const py = y - p * 50 - Math.sin(t * 3 + i) * 5;
+    const size = (1 - p) * 4;
+
+    const hue = (i * 30) % 360;
+    ctx.fillStyle = `hsla(${hue}, 90%, 70%, ${1-p})`;
+    ctx.beginPath();
+    ctx.arc(px, py, size, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+// 护盾特效（蓝色能量盾）
+function drawShieldFX(x, y, p, t) {
+  const pulse = 0.8 + 0.2 * Math.sin(t * 5);
+  ctx.globalAlpha = (1 - p) * 0.6 * pulse;
+
+  // 外圈
+  const outerGrad = ctx.createRadialGradient(x, y, 20, x, y, 50);
+  outerGrad.addColorStop(0, 'rgba(100, 200, 255, 0)');
+  outerGrad.addColorStop(0.5, 'rgba(100, 200, 255, 0.3)');
+  outerGrad.addColorStop(1, 'rgba(100, 200, 255, 0)');
+
+  ctx.fillStyle = outerGrad;
+  ctx.beginPath();
+  ctx.arc(x, y, 50, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 内圈光晕
+  ctx.globalAlpha = (1 - p) * 0.8;
+  const innerGrad = ctx.createRadialGradient(x, y, 0, x, y, 30);
+  innerGrad.addColorStop(0, 'rgba(150, 220, 255, 0.6)');
+  innerGrad.addColorStop(1, 'rgba(100, 180, 255, 0)');
+
+  ctx.fillStyle = innerGrad;
+  ctx.beginPath();
+  ctx.arc(x, y, 30, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 护盾纹路
+  ctx.strokeStyle = `rgba(200, 240, 255, ${(1-p)*0.8})`;
+  ctx.lineWidth = 2;
+  for (let i = 0; i < 6; i++) {
+    const angle = (Math.PI / 3) * i + t;
+    ctx.beginPath();
+    ctx.moveTo(x + Math.cos(angle) * 25, y + Math.sin(angle) * 25);
+    ctx.lineTo(x + Math.cos(angle) * 40, y + Math.sin(angle) * 40);
+    ctx.stroke();
+  }
+}
+
+// 暴击特效（红色爆裂）
+function drawCritFX(x, y, p, t) {
+  ctx.globalAlpha = 1 - p;
+
+  // 星形爆裂
+  const spikes = 8;
+  const outerRadius = (1 - p) * 40;
+  const innerRadius = outerRadius * 0.4;
+
+  ctx.fillStyle = `rgba(255, 80, 50, ${1-p})`;
+  ctx.beginPath();
+
+  for (let i = 0; i < spikes * 2; i++) {
+    const angle = (Math.PI / spikes) * i - Math.PI / 2;
+    const r = i % 2 === 0 ? outerRadius : innerRadius;
+    const px = x + Math.cos(angle) * r;
+    const py = y + Math.sin(angle) * r;
+
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+
+  ctx.closePath();
+  ctx.fill();
+
+  // 中心白光
+  const centerGrad = ctx.createRadialGradient(x, y, 0, x, y, 15);
+  centerGrad.addColorStop(0, `rgba(255, 255, 255, ${1-p})`);
+  centerGrad.addColorStop(1, 'rgba(255, 100, 50, 0)');
+
+  ctx.fillStyle = centerGrad;
+  ctx.beginPath();
+  ctx.arc(x, y, 15, 0, Math.PI * 2);
+  ctx.fill();
 }
 
 // ── 火焰球绕身绘制 ─────────────────────────────────────────
@@ -6222,7 +6659,7 @@ function drawCrossSweeps() {
 function drawBullet(b) {
   ctx.save();
   const ang = Math.atan2(b.vy, b.vx);
-  const t = _frameSec; // 使用全局帧时间戳
+  const t = Date.now() * 0.001;
 
   // ── 刘备：剑气斩 ── 金色剑气
   if (b.type === 'sword_slash') {
@@ -8398,7 +8835,7 @@ function drawTutorialHints() {
   if (!hero || state !== 'battle') return;
   if (wave > 2) return; // 只在前2波显示
 
-  const t = _frameSec; // 使用全局帧时间戳
+  const t = Date.now() * 0.001;
   ctx.save();
   resetTransform(); // 使用屏幕坐标
 
@@ -8939,11 +9376,19 @@ function stopHudAvatarAnim() {
 //  启动
 // ════════════════════════════════
 function _initGame() {
+  // 初始化对象池（减少GC压力）
+  ObjectPool.init();
+
   loadMvpData();
   loadDailyTasks();
   loadPlayerGold();
   // 重新resize确保正确尺寸
   resize();
+  
+  // 初始化WebGL渲染器
+  const webglEnabled = initWebGLRenderer(canvas);
+  console.log(`WebGL enabled: ${webglEnabled}`);
+  
   preload(() => {
     startMenuAnim();
     startHeroCardPreviews();
